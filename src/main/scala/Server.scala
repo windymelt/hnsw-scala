@@ -8,12 +8,14 @@ import ox.*
 import ox.channels.Channel
 import ox.flow.Flow
 import cats.Id
+import cats.instances.vector
 
 enum NotifyMessage derives Encoder {
   case NodeAdded(
       id: Int,
       vector: Vector,
-      level: Int
+      level: Int,
+      label: String
   )
   case NewConnection(
       fromId: Int,
@@ -27,20 +29,66 @@ object Server {
   val notifyChan = ox.channels.Channel.rendezvous[NotifyMessage]
   val goChan = ox.channels.Channel.rendezvous[Unit]
   val hnsw =
-    new HNSW(maxM = 3, maxM0 = 4, efConstruction = 200, efSearch = 100)()(
+    new HNSW(maxM = 2, maxM0 = 3, efConstruction = 200, efSearch = 100)()(
       notifyChan
     )
 
   // テスト用のベクトルを生成
-  val vectors = for {
-    i <- 0 until 10
-    j <- 0 until 10
-    k <- 0 until 10
-  } yield Array(
-    Math.sin(i.toDouble),
-    Math.cos(j.toDouble),
-    Math.cos(k.toDouble)
-  )
+  val strings =
+    Seq(
+      "柴犬",
+      "秋田犬",
+      "ゴールデン・レトリーバー",
+      "ラブラドール・レトリーバー",
+      "プードル",
+      "チワワ",
+      "ダックスフンド",
+      "フレンチ・ブルドッグ",
+      "ブルドッグ",
+      "ポメラニアン",
+      "シベリアン・ハスキー",
+      "ジャーマン・シェパード",
+      "ビーグル",
+      "ボーダー・コリー",
+      "パグ",
+      "ヨークシャー・テリア",
+      "ミニチュア・シュナウザー",
+      "シー・ズー",
+      "コーギー",
+      "セント・バーナード",
+      "日本猫",
+      "アメリカン・ショートヘア",
+      "ブリティッシュ・ショートヘア",
+      "スコティッシュ・フォールド",
+      "マンチカン",
+      "ロシアンブルー",
+      "メインクーン",
+      "ラグドール",
+      "ペルシャ",
+      "ベンガル",
+      "シャム",
+      "ノルウェージャン・フォレスト・キャット",
+      "アビシニアン",
+      "サイベリアン",
+      "エキゾチック・ショートヘア",
+      "ヒマラヤン",
+      "トンキニーズ",
+      "バーマン",
+      "オリエンタル・ショートヘア",
+      "セルカーク・レックス",
+      "カワラバト",
+      "キジバト",
+      "シラコバト",
+      "アオバト",
+      "カラスバト",
+      "ヨナグニカラスバト",
+      "アカガシラカラスバト",
+      "シロガシラカラスバト",
+      "ズアカアオバト",
+      "チュウダイズアカアオバト",
+      "ベニバト",
+      "キンバト"
+    )
 
   // インデックスの状態を表示
   hnsw.printStats()
@@ -60,10 +108,14 @@ object Server {
       }
     }
     fork {
+      import scala.concurrent.duration.given
       goChan.receive() // ブロックして待機
+      val vectors = Embedding.generateEmbedding(strings).get()
+      println("Generated embeddings for input strings")
       vectors.zipWithIndex.foreach { case (vector, id) =>
-        hnsw.addVector(id, vector)
+        hnsw.addVector(id, vector.toArray, strings(id))
         println(s"Added vector for node $id")
+        sleep(500.millis)
       }
       println("All vectors added successfully")
     }

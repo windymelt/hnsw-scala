@@ -10,7 +10,8 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.softwaremill.ox" %% "core" % "1.0.2",
       "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.13.2",
-      "io.netty" % "netty-all" % "4.2.7.Final"
+      "io.netty" % "netty-all" % "4.2.7.Final",
+      "io.cequence" %% "openai-scala-client" % "1.3.0.RC.1"
     ),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",

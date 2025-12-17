@@ -360,7 +360,7 @@
         // Check message type based on Scala enum structure
         if (msg.NodeAdded) {
           const data = msg.NodeAdded;
-          addNode(data.id, data.vector, data.level);
+          addNode(data.id, data.vector, data.level, data.label);
         } else if (msg.NewConnection) {
           const data = msg.NewConnection;
           addEdge(data.fromId, data.toId);
@@ -371,13 +371,13 @@
         }
       }
 
-      function addNode(id, vector, level) {
+      function addNode(id, vector, level, label) {
         try {
           // Check if node already exists
           if (!nodes.get(id)) {
             nodes.add({
               id: id,
-              label: String(id),
+              label: label,
               level: level, // Store level data
               color: getColorForLevel(level),
               size: getSizeForLevel(level),

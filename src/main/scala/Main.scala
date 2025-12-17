@@ -8,7 +8,8 @@ case class Node(
     vector: Vector,
     level: Int,
     // レベルごとの近傍ノード。インデックス0が最下層(レイヤー0)に対応
-    connections: Array[mutable.Map[Int, Vector]]
+    connections: Array[mutable.Map[Int, Vector]],
+    label: String
 )
 
 class HNSW(
@@ -41,16 +42,16 @@ class HNSW(
     math.floor(-math.log(randomValue) * levelMultiplier).toInt
   }
 
-  def addVector(id: Int, vector: Vector): Unit = {
+  def addVector(id: Int, vector: Vector, label: String): Unit = {
     val level = calculateLevel()
     val connections = Array.fill(level + 1)(mutable.Map[Int, Vector]())
-    val newNode = Node(id, vector, level, connections)
+    val newNode = Node(id, vector, level, connections, label)
     nodes.put(id, newNode)
 
     if (entryPoint.isEmpty) {
       entryPoint = Some(id)
       maxLevel = level
-      notifyChan.send(NotifyMessage.NodeAdded(id, vector, level))
+      notifyChan.send(NotifyMessage.NodeAdded(id, vector, level, label))
       return
     }
 
@@ -100,7 +101,7 @@ class HNSW(
 
         // 相手 -> 自分
         neighborNode.connections(l).put(id, vector)
-        // notifyChan.send(NotifyMessage.NewConnection(neighborId, id))
+        notifyChan.send(NotifyMessage.NewConnection(neighborId, id))
 
         // 相手の接続数制限チェック (簡易的な枝刈り: 一番遠いものを削除)
         if (neighborNode.connections(l).size > M) {
@@ -127,7 +128,7 @@ class HNSW(
       entryPoint = Some(id)
     }
 
-    notifyChan.send(NotifyMessage.NodeAdded(id, vector, level))
+    notifyChan.send(NotifyMessage.NodeAdded(id, vector, level, label))
   }
 
   // searchLayer: 特定のレイヤーでの近傍探索
@@ -256,7 +257,7 @@ class HNSW(
       k: Int
   ): List[(nodeId: Int, dist: Double)] = {
     val tempId = 99999999
-    addVector(tempId, vector)
+    addVector(tempId, vector, "temp_node")
 
     val results = searchNeighbors(tempId, k)
 
